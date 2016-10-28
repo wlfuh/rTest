@@ -35,4 +35,4 @@ instant_pkgs <- function(pkgs) {
 }
 
 # Examples:
-instant_pkgs(c("base", "jpeg"))
+instant_pkgs(c("class"))
