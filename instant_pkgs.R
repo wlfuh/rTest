@@ -35,4 +35,4 @@ instant_pkgs <- function(pkgs) {
 }
 
 # Examples:
-instant_pkgs(c("class"))
+instant_pkgs(c("pracma","class"))

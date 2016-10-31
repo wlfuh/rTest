@@ -40,6 +40,7 @@ plot_knn <- function(noise = 0){
   train <- data.matrix(refdata[!(refdata$resid %in% subid),"cs"])
   test <- data.matrix(refdata[(refdata$resid %in% subid),"cs"])
   test <- jitter(test, amount=noise)
+  # classification by residue name
   cl <- factor(refdata[!(refdata$resid %in% subid),"resname"])
   kvals <- seq(1,length(train),1)
   diffs <- NULL
@@ -50,7 +51,7 @@ plot_knn <- function(noise = 0){
     originClass <- data.matrix(refdata[(refdata$resid %in% subid),"resname"])
     numDiffs <- 0
     if(length(knnmatrix) != length(originClass))
-      stop("KNN result has different length then original classification of test")
+      stop("KNN result has different length than the original classification of test")
     for(j in 1:length(knnres)){
       if(knnmatrix[j] != originClass[j])
         numDiffs <- numDiffs + 1
@@ -59,6 +60,27 @@ plot_knn <- function(noise = 0){
   }
   plot(kvals, diffs)
 }
+
+# linear regression
+plot_linear <- function(){
+  testdata <- refdata[!(refdata$resid %in% subid),"cs"]
+  moddata <- refdata[(refdata$resid %in% subid),"cs"]
+  test <- data.frame(id=1:length(testdata),cs=testdata)
+  mod <- data.frame(id=1:length(moddata),cs=moddata)
+  #plot(seq(1,length(testmatrix),1), testmatrix)
+  #fit <- lm(id ~ cs, data=test)
+  #plot(fit)
+  lm.out = lm(cs ~ id, data=test)
+  lm.out2 = lm(cs ~ id, data=mod)
+  layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+  plot(cs ~ id, data=test, main="Test Plot")
+  abline(lm.out, col="red")
+  plot(cs ~ id, data=mod, main="Mod Plot")
+  abline(lm.out2, col="green")
+  print(coefficients(lm.out))
+  print(coefficients(lm.out2))
+}
+
 '
 knnres <- knn(train, test, cl, k=7)
 print(knnres)
