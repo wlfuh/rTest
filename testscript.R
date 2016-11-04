@@ -27,10 +27,70 @@ plot_haus <- function(iter = 100){
     final_dist <- c(final_dist, mean(tmp_dist))
   }
   
-  plot(ms, final_dist)
+  plot(ms, final_dist, main="Hausdorff Distance depending on Jitter Amount", 
+       xlab="Jitter Amount", ylab="Hausdorff Distance")
 }
 
 # try using hungrian algorithm
+
+plot_hung <- function(iter = 100){
+  testdata <- refdata[!(refdata$resid %in% subid),"cs"]
+  moddata <- refdata[(refdata$resid %in% subid),"cs"]
+  print(find_cost(moddata, testdata))
+  final_dist <- NULL
+  ms <- seq(1,iter,1)
+  for (m in ms){
+    # average distance
+    tmp_dist <- NULL
+    for (i in 1:iter){
+      tmp_dist <- c(tmp_dist, find_cost(testdata,jitter(moddata, amount = m)))
+    }
+    final_dist <- c(final_dist, mean(tmp_dist))
+  }
+  plot(ms, final_dist, main="Hungarian Algorithm Cost depending on Jitter Amount", 
+       xlab="Jitter Amount", ylab="Total Cost")
+}
+
+plot_special <- function(iter = 100){
+  testdata <- refdata[!(refdata$resid %in% subid),"cs"]
+  moddata <- refdata[(refdata$resid %in% subid),"cs"]
+  print(find_cost(moddata, testdata))
+  final_dist <- NULL
+  ms <- seq(1,iter,1)
+  for (m in ms){
+    # average distance
+    tmp_dist <- NULL
+    for (i in 1:iter){
+      modjitt <- jitter(moddata, amount = m)
+      tmp_dist <- c(tmp_dist, mean(find_cost(testdata,modjitt), hausdorff_dist(testdata,modjitt)))
+    }
+    final_dist <- c(final_dist, mean(tmp_dist))
+  }
+  plot(ms, final_dist, main="Average cost/distance (Hungarian and Hausdorff combined)", 
+       xlab="Jitter Amount", ylab="Cost/ Distance")
+  
+}
+
+find_cost <- function(x, y){
+  require(clue)
+  # maps chemical shifts in y to chemical shifts in x 
+  # Input -- x (vector): chemical shifts 
+  # Input -- y (vector): chemical shifts which are to be mapped to those in x (not x can be greater than y)
+  if(length(x) < length(y)){
+    temp = x
+    x = y
+    y = temp
+  }
+  xmat <- matrix(x,nrow=length(y),ncol=length(x),byrow=T)
+  ymat <- matrix(y,nrow=length(y),ncol=length(x),byrow=F)
+  costmat <- abs(xmat-ymat)
+  a <- solve_LSAP(costmat)
+  cost = as.integer(0)
+  for(i in 1:length(a))
+    cost = cost + costmat[i, a[i]]
+  return(cost)
+  # cbind(x[assignments],y)
+}
 
 # k- nearest algorithm
 # uses library class
