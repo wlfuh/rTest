@@ -4,14 +4,14 @@ refdata <- read.table("test.dat", header=FALSE)
 colnames(refdata) <- c("resname","resid","nucleus","cs","error")
 subid <- c(1,2,3)
 
-plot_haus <- function(iter = 100){
+plot_haus <- function(iter = 100, axises=TRUE){
   testdata <- refdata[!(refdata$resid %in% subid),"cs"]
   moddata <- refdata[(refdata$resid %in% subid),"cs"]
   testmatrix <- data.matrix(testdata)
   modmatrix <- data.matrix(moddata)
   hausdorff_dist(moddata, testmatrix)
   
-  print(hausdorff_dist(testmatrix,jitter(modmatrix, amount = 10)))
+  #print(hausdorff_dist(testmatrix,jitter(modmatrix, amount = 10)))
   
   # determine the properities of the hausdorff_dist as we data more noise to the subset
   # and make plot
@@ -26,17 +26,21 @@ plot_haus <- function(iter = 100){
     }
     final_dist <- c(final_dist, mean(tmp_dist))
   }
-  
-  plot(ms, final_dist, main="Hausdorff Distance depending on Jitter Amount", 
-       xlab="Jitter Amount", ylab="Hausdorff Distance")
+  if(axises)
+    plot(ms, final_dist, main="Hausdorff Distance depending on Jitter Amount", 
+         xlab="Jitter Amount", ylab="Hausdorff Distance")
+  else
+    points(ms, final_dist, xlab="", ylab="")
+  print(capture.output(cat("Hausdorff Standard Deviation: ", sd(final_dist))))
+  print(capture.output(cat("Hausdorff Mean: ", mean(final_dist))))
 }
 
 # try using hungrian algorithm
 
-plot_hung <- function(iter = 100){
+plot_hung <- function(iter = 100, axises=TRUE){
   testdata <- refdata[!(refdata$resid %in% subid),"cs"]
   moddata <- refdata[(refdata$resid %in% subid),"cs"]
-  print(find_cost(moddata, testdata))
+  #print(find_cost(moddata, testdata))
   final_dist <- NULL
   ms <- seq(1,iter,1)
   for (m in ms){
@@ -47,8 +51,13 @@ plot_hung <- function(iter = 100){
     }
     final_dist <- c(final_dist, mean(tmp_dist))
   }
-  plot(ms, final_dist, main="Hungarian Algorithm Cost depending on Jitter Amount", 
+  if(axises)
+    plot(ms, final_dist, main="Hungarian Algorithm Cost depending on Jitter Amount", 
        xlab="Jitter Amount", ylab="Total Cost")
+  else
+    plot(ms, final_dist, pch=3, xlab="", ylab="")
+  print(capture.output(cat("Hungarian Standard Deviation: ", sd(final_dist))))
+  print(capture.output(cat("Hungarian Mean: ", mean(final_dist))))
 }
 
 plot_special <- function(iter = 100){
@@ -69,6 +78,15 @@ plot_special <- function(iter = 100){
   plot(ms, final_dist, main="Average cost/distance (Hungarian and Hausdorff combined)", 
        xlab="Jitter Amount", ylab="Cost/ Distance")
   
+}
+
+plot_combined <- function(iter = 100){
+  testdata <- refdata[!(refdata$resid %in% subid),"cs"]
+  moddata <- refdata[(refdata$resid %in% subid),"cs"]
+  #(matrix(c(1, 1, 1, 1), 2, 2, byrow = TRUE))
+  plot_hung(iter, FALSE)
+  plot_haus(iter, FALSE)
+  title(main="Hausdorff and Hungarian Same Graph", sub="+ = Hungarian, . = Hausdorrf", xlab="Jitter Amount", ylab="Cost/ Distance")
 }
 
 find_cost <- function(x, y){
