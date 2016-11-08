@@ -55,3 +55,19 @@ plot_noise <- function(noiselevel=100){
   plot(1:noiselevel, stdev, xlab="Noise Level", ylab="Standard Deviation", main="Standard Deviation by Noise Level (100 iterations)")
   lines(1:noiselevel, stdev, pch=16)
 }
+
+plot_iter <- function(iter=100){
+  data <- NULL
+  seq <- NULL
+  stdev <- NULL
+  for(i in 1:iter){
+    tempdata <- getspread(iter=i)
+    stdev <- c(stdev, sd(tempdata))
+    data <- c(data, tempdata)
+    seq <- c(seq, rep(i, length(tempdata)))
+  }
+  layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+  plot(seq, data, xlab="Noise Level", ylab="Cost", main="Cost Values by Iterations")
+  plot(1:iter, stdev, xlab="Noise Level", ylab="Standard Deviation", main="Standard Deviation by Iterations (Noise Level 1)")
+  lines(1:iter, stdev, pch=16)
+}
