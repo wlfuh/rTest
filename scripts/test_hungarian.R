@@ -71,3 +71,17 @@ plot_iter <- function(iter=100){
   plot(1:iter, stdev, xlab="Noise Level", ylab="Standard Deviation", main="Standard Deviation by Iterations (Noise Level 1)")
   lines(1:iter, stdev, pch=16)
 }
+
+test_reverse <- function(){
+  revmod <- rev(moddata)
+  a <- assign(testdata,revmod)
+  print(get_assignment_cost(a$a, a$costmat))
+  
+}
+
+test_sample <- function(){
+  sampmod <- sample(moddata)
+  a <- assign(testdata,sampmod)
+  print(get_assignment_cost(a$a, a$costmat))
+  
+}
