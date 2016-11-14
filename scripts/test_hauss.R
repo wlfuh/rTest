@@ -44,12 +44,14 @@ test_reverse <- function(){
   revmod <- rev(moddata)
   print(hausdorff_dist(revmod, moddata))
   print(hausdorff_dist(moddata, testmatrix))
+  print(hausdorff_dist(revmod, testmatrix))
 }
 
 test_sample <- function(){
   sampmod <- sample(moddata)
   print(hausdorff_dist(sampmod, moddata))
   print(hausdorff_dist(moddata, testmatrix))
+  print(hausdorff_dist(sampmod, testmatrix))
 }
 
 # Haussdorff distance can be used to see how much a subset matches with original set
