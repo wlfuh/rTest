@@ -20,6 +20,11 @@ print(get_assignment_cost(a$a, a$costmat))
 a <- assign(testdata,jitter(moddata))
 print(get_assignment_cost(a$a, a$costmat))
 
+# Numerical Summary
+print(summary(testdata))
+print("Standard Deviation")
+print(sd(testdata))
+
 # (3) What happens if we repeat this many times? That is, repeat the assignment many time with some noise in moddata, then take the most probable assignment and calculate the cost.
 # Is the most probable assignment have an error near zero?
 # William: do you want to write the code to test this out?
@@ -27,6 +32,14 @@ print(get_assignment_cost(a$a, a$costmat))
 # How would you determine the most probable?
 # Note that the assign function, which you can find in assignments.R, returns both the vector of assignment and an assignment matrix.
 # I think the latter would be helpful
+
+# Need to determine the maximum cost, to be considered probable assignment, perhaps by standard deviation of entire data
+# But the range of values differs depending on the nuclues
+# For instance, H ranges from 3.856 to 14.458 and jumps to 96.6 for C
+# refdata[with(refdata, order(cs)), ]
+
+# Could also use mean, but does not really make sense.
+
 
 # Repeat assignment, with same noise level, get standard deviation of data
 getspread <- function(iter=100, noise=1, diff=NULL){
@@ -40,24 +53,55 @@ getspread <- function(iter=100, noise=1, diff=NULL){
   return(data)
 }
 
-plot_noise <- function(noiselevel=100){
+plot_noise <- function(noiselevel=100, iter=100, table=FALSE){
   data <- NULL
   seq <- NULL
   stdev <- NULL
   pvals <- NULL
   for(i in 1:noiselevel){
-    tempdata <- getspread(noise=i)
+    tempdata <- getspread(iter,noise=i)
     stdev <- c(stdev, sd(tempdata))
     pvals <- c(pvals, t.test(tempdata)$p.value)
     data <- c(data, tempdata)
     seq <- c(seq, rep(i, length(tempdata)))
   }
-  layout(matrix(c(1, 1, 2, 3), 2, 2, byrow = TRUE))
-  plot(seq, data, xlab="Noise Level", ylab="Cost", main="Cost Values by Noise Level")
-  plot(1:noiselevel, stdev, xlab="Noise Level", ylab="Standard Deviation", main="Standard Deviation by Noise Level (100 iterations)")
-  lines(1:noiselevel, stdev, pch=16)
-  plot(1:noiselevel, pvals, xlab="Noise Level", ylab="p-value", main="p-value by Noise Level (100 iterations)")
-  lines(1:noiselevel, pvals, pch=16)
+  if(!table){
+    layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+    plot(seq, data, xlab="Noise Level", ylab="Cost", main="Cost Values by Noise Level")
+    plot(1:noiselevel, stdev, xlab="Noise Level", ylab="Standard Deviation", main=paste("Standard Deviation by Noise Level (",iter,"iterations)",sep=" "))
+    lines(1:noiselevel, stdev, pch=16)
+    # plot(1:noiselevel, pvals, xlab="Noise Level", ylab="p-value", main=paste("p-value by Noise Level (",iter,"iterations)",sep=" "))
+    # lines(1:noiselevel, pvals, pch=16)
+  }
+  else{
+    print(cbind(seq, data))
+  }
+}
+
+plot_noise_avg <- function(noiselevel=100, iter=100, table=FALSE){
+  data <- NULL
+  stdev <- NULL
+  # pvals <- NULL
+  for(i in 1:noiselevel){
+    tempdata <- getspread(iter,noise=i)
+    stdev <- c(stdev, sd(tempdata))
+    # pvals <- c(pvals, t.test(tempdata)$p.value)
+    data <- c(data, mean(tempdata))
+  }
+  if(!table){
+    layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+    plot(1:noiselevel, data, xlab="Noise Level", ylab="Cost", main="Cost Values by Noise Level (Averaging Iterations)")
+    dataMean = mean(testdata)
+    abline(h=dataMean)
+    text(noiselevel, dataMean, paste("mean ",dataMean), pos="3")
+    plot(1:noiselevel, stdev, xlab="Noise Level", ylab="Standard Deviation", main=paste("Standard Deviation by Noise Level (",iter,"iterations)",sep=" "))
+    lines(1:noiselevel, stdev, pch=16)
+    # plot(1:noiselevel, pvals, xlab="Noise Level", ylab="p-value", main=paste("p-value by Noise Level (",iter,"iterations)",sep=" "))
+    # lines(1:noiselevel, pvals, pch=16)
+  }
+  else{
+    print(cbind(1:noiselevel, data))
+  }
 }
 
 plot_iter <- function(iter=100){
@@ -89,3 +133,4 @@ test_sample <- function(){
   print(get_assignment_cost(a$a, a$costmat))
   
 }
+
