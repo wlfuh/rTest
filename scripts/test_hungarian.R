@@ -41,7 +41,7 @@ print(sd(testdata))
 # Could also use mean, but does not really make sense.
 
 
-# Repeat assignment, with same noise level, get standard deviation of data
+# Gets assignment costs for i iterations, at noise level n
 getspread <- function(iter=100, noise=1, diff=NULL){
   data <- NULL
   for(i in 1:iter){
@@ -53,6 +53,7 @@ getspread <- function(iter=100, noise=1, diff=NULL){
   return(data)
 }
 
+# Plots Assignment Cost as a function of noiselevel, with each noiselevel plotted i iter times
 plot_noise <- function(noiselevel=100, iter=100, table=FALSE){
   data <- NULL
   seq <- NULL
@@ -78,6 +79,8 @@ plot_noise <- function(noiselevel=100, iter=100, table=FALSE){
   }
 }
 
+# Plots Assignment Cost as a function of noiselevel, averaging i iterations of the assignment cost 
+# at each noise level
 plot_noise_avg <- function(noiselevel=100, iter=100, table=FALSE){
   data <- NULL
   stdev <- NULL
@@ -104,6 +107,7 @@ plot_noise_avg <- function(noiselevel=100, iter=100, table=FALSE){
   }
 }
 
+# Plot assingment cost as a function of the number iteration at a fixed noise level
 plot_iter <- function(iter=100){
   data <- NULL
   seq <- NULL

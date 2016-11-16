@@ -35,4 +35,4 @@ instant_pkgs <- function(pkgs) {
 }
 
 # Examples:
-instant_pkgs(c("pracma","class","clue", "chemometrics", "FNN"))
+instant_pkgs(c("pracma","class","clue", "chemometrics", "FNN", "plyr"))
