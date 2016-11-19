@@ -1,5 +1,6 @@
 # load library and our custom functions
 library(pracma)
+library(plyr)
 source("scripts/assignments.R")
 
 # read in reference data
@@ -63,7 +64,7 @@ plot_scaled <- function(maxscale=1, inc, iter=1){
       pred_cost = get_assignment_cost(a$a, a$costmat)
       ith_cost <- c(ith_cost, as.numeric(pred_cost))
     }
-    costs <- c(costs, mean(ith_cost))
+    costs <- c(costs, median(ith_cost))
     if(iter > 1)
       stdevs <- c(stdevs,sd(ith_cost))
   }
