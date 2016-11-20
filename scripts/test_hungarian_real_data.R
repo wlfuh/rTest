@@ -7,8 +7,12 @@ source("scripts/assignments.R")
 refdata <- read.table("data/measured_shifts_2KOC.dat", header=FALSE)
 colnames(refdata) <- c("resname","resid","nucleus","cs","dummy")
 
+refdata2 <- read.table("data/test.dat", header=FALSE)
+colnames(refdata2) <- c("resname","resid","nucleus","cs","error")
+
 # vector of reference values
 testdata <- refdata[,"cs"]
+testdata2 <- refdata2[,"cs"]
 
 # vector of subset
 predcs <- read.table("data/predicted_shifts_2KOC.dat", header=FALSE)
@@ -51,33 +55,74 @@ getspread <- function(iter=100, noise=1, diff=NULL){
 # ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=0.1)
 
 # Plots Assignment Cost based on scaled noise level, up to maxscale, split into inc times each iter times
-plot_scaled <- function(maxscale=1, inc, iter=1){
+# comp- TRUE- plot w/ both refdata, FALSE- plot w/ only one refdata
+plot_scaled <- function(maxscale=1, inc, iter=1, comp=FALSE){
   costs <- NULL
+  costs2 <- NULL
   range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
   scales <- range01(1:inc)
-  stdevs <- NULL
+  # stdevs <- NULL
   for(i in scales){
     ith_cost <- NULL
+    ith_cost2 <- NULL
     for(j in 1:iter){
       predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
       a <- assign(testdata, predcs_mod$V1)
       pred_cost = get_assignment_cost(a$a, a$costmat)
       ith_cost <- c(ith_cost, as.numeric(pred_cost))
+      if(comp){
+        a <- assign(testdata2, predcs_mod$V1)
+        pred_cost = get_assignment_cost(a$a, a$costmat)
+        ith_cost2 <- c(ith_cost2, as.numeric(pred_cost))
+      }
     }
     costs <- c(costs, median(ith_cost))
-    if(iter > 1)
-      stdevs <- c(stdevs,sd(ith_cost))
+    if(comp)
+      costs2 <- c(costs2, median(ith_cost2))
+    #if(iter > 1)
+      #stdevs <- c(stdevs,sd(ith_cost))
   }
   plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
        main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
+  print(summary(costs))
+  if(comp){
+    # does not print because cost is way too high ~3000
+    points(scales, costs2, col="red")
+  }
   if(iter > 1){
-    stdframe <- data.frame(scales, stdevs)
-    names(stdframe) <- c("Scale", "Standard Deviation")
-    print(stdframe)
+    #stdframe <- data.frame(scales, stdevs)
+    #names(stdframe) <- c("Scale", "Standard Deviation")
+    #print(stdframe)
   }
 }
 
 # Things to test, different maxscale, different iterations
 # Multiple Iterations at each scale level
 
+# calculates number of differences b/w two LSAP (assumed to be same size)
+get_diffs <- function(l1, l2){
+  diff = 0
+  for(i in 1:length(l1)){
+    if(l1[i] != l2[i])
+      diff <- diff + 1
+  }
+  return(diff)
+}
+
+# plot the number of different assignment at each inc relative to original assignments
+plot_diffs <- function(maxscale=1, inc){
+  original <- assign(testdata, predcs$cs)
+  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+  scales <- range01(1:inc)
+  diffs <- 0
+  for(i in scales){
+    if(i == 0)
+      next
+    predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+    a <- assign(testdata, predcs_mod$V1)
+    diffs <- c(diffs, get_diffs(original$a, a$a))
+  }
+  plot(scales, diffs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Differences",
+       main="Number of Different Assignment at each scale")
+}
 
