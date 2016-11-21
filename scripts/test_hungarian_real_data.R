@@ -56,44 +56,44 @@ getspread <- function(iter=100, noise=1, diff=NULL){
 
 # Plots Assignment Cost based on scaled noise level, up to maxscale, split into inc times each iter times
 # comp- TRUE- plot w/ both refdata, FALSE- plot w/ only one refdata
-plot_scaled <- function(maxscale=1, inc, iter=1, comp=FALSE){
+plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
   costs <- NULL
-  costs2 <- NULL
   range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
   scales <- range01(1:inc)
+  filename <- paste("output/plot_scaled_output_", inc, "_increment_", iter, "_times.txt")
+  bestassign <- assign(testdata, predcs$cs)
+  bestcost <- get_assignment_cost(bestassign$a, bestassign$costmat)
+  bestscale <- 0
+  sink(filename)
   # stdevs <- NULL
   for(i in scales){
     ith_cost <- NULL
-    ith_cost2 <- NULL
     for(j in 1:iter){
       predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
       a <- assign(testdata, predcs_mod$V1)
       pred_cost = get_assignment_cost(a$a, a$costmat)
-      ith_cost <- c(ith_cost, as.numeric(pred_cost))
-      if(comp){
-        a <- assign(testdata2, predcs_mod$V1)
-        pred_cost = get_assignment_cost(a$a, a$costmat)
-        ith_cost2 <- c(ith_cost2, as.numeric(pred_cost))
+      if(pred_cost < bestcost){
+        bestassign <- a
+        bestcost <- pred_cost
+        bestscale <- i
       }
+      ith_cost <- c(ith_cost, as.numeric(pred_cost))
+      print(a$a)
     }
-    costs <- c(costs, median(ith_cost))
-    if(comp)
-      costs2 <- c(costs2, median(ith_cost2))
+    costs <- c(costs, mean(ith_cost))
     #if(iter > 1)
       #stdevs <- c(stdevs,sd(ith_cost))
   }
-  plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
+  if(doplot)
+    plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
        main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
+  sink(type = "message")
+  sink()
   print(summary(costs))
-  if(comp){
-    # does not print because cost is way too high ~3000
-    points(scales, costs2, col="red")
-  }
-  if(iter > 1){
-    #stdframe <- data.frame(scales, stdevs)
-    #names(stdframe) <- c("Scale", "Standard Deviation")
-    #print(stdframe)
-  }
+  print("Best")
+  print(bestassign$a)
+  print(paste("Cost: ",bestcost))
+  print(paste("Scale: ",bestscale))
 }
 
 # Things to test, different maxscale, different iterations
