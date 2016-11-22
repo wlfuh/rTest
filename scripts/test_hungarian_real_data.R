@@ -64,7 +64,6 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
   bestassign <- assign(testdata, predcs$cs)
   bestcost <- get_assignment_cost(bestassign$a, bestassign$costmat)
   bestscale <- 0
-  sink(filename)
   # stdevs <- NULL
   for(i in scales){
     ith_cost <- NULL
@@ -78,7 +77,6 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
         bestscale <- i
       }
       ith_cost <- c(ith_cost, as.numeric(pred_cost))
-      print(a$a)
     }
     costs <- c(costs, mean(ith_cost))
     #if(iter > 1)
@@ -87,8 +85,6 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
   if(doplot)
     plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
        main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
-  sink(type = "message")
-  sink()
   print(summary(costs))
   print("Best")
   print(bestassign$a)
@@ -124,5 +120,37 @@ plot_diffs <- function(maxscale=1, inc){
   }
   plot(scales, diffs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Differences",
        main="Number of Different Assignment at each scale")
+}
+
+hung_trials <- function(maxscale, inc, iter){
+  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+  scales <- range01(1:inc)
+  masterlist <- list()
+  for(i in scales){
+    if(i == 0)
+      next
+    mat <- matrix(NA, nrow=iter, ncol=nrow(predcs))
+    prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
+    scale_costs <- NULL
+    acc_resid <- NULL
+    acc_nucleus <- NULL
+    
+    for(j in 1:iter){
+      predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+      a <- assign(testdata, predcs_mod$V1)
+      pred_cost = get_assignment_cost(a$a, a$costmat)
+      scale_costs <- c(scale_costs, pred_cost)
+      
+      mat[j,] <- as.vector(a$a)
+      prob = prob + a$a_mat
+      d <- cbind(predcs_mod, refdata[as.vector(a$a),])
+      acc_resid <- c(acc_resid, mean(as.character(d[,2])==as.character(d[,6])))
+      acc_nucleus <- c(acc_nucleus, mean(d[,1]==d[,5]))
+    }
+    key <- paste("scale",i,sep="")
+    masterlist[[key]] = list(costs=scale_costs, assignments=mat, iterations=iter, probs=prob/iter, 
+                             acc_resid=acc_resid, acc_nuc=acc_nucleus)
+  }
+  save(masterlist, file=paste("output/",maxscale,"scale_",(maxscale/(inc - 1)),"inc_",iter,"iter.RData",sep=""))
 }
 
