@@ -19,6 +19,7 @@ predcs <- read.table("data/predicted_shifts_2KOC.dat", header=FALSE)
 colnames(predcs) <- c("resname","resid","nucleus","cs","dummy")
 accu <- read.table("data/larmord_accuracy_resname_nucleus.txt",col.names = c("resname","nucleus","error"))
 predcs <- merge(predcs, accu)
+predcs <- predcs[order(predcs$resid, predcs$nucleus),]
 
 
 moddata <- predcs$cs
@@ -70,6 +71,7 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
     ith_cost <- NULL
     for(j in 1:iter){
       predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+      predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
       a <- assign(testdata, predcs_mod$V1)
       pred_cost = get_assignment_cost(a$a, a$costmat)
       if(pred_cost < bestcost){
@@ -119,6 +121,7 @@ plot_diffs <- function(maxscale=1, inc){
     if(i == 0)
       next
     predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+    
     a <- assign(testdata, predcs_mod$V1)
     diffs <- c(diffs, get_diffs(original$a, a$a))
   }
