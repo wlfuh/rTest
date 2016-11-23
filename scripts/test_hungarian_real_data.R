@@ -19,6 +19,7 @@ predcs <- read.table("data/predicted_shifts_2KOC.dat", header=FALSE)
 colnames(predcs) <- c("resname","resid","nucleus","cs","dummy")
 accu <- read.table("data/larmord_accuracy_resname_nucleus.txt",col.names = c("resname","nucleus","error"))
 predcs <- merge(predcs, accu)
+predcs <- predcs[order(predcs$resid, predcs$nucleus),]
 
 
 moddata <- predcs$cs
@@ -64,11 +65,13 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
   bestassign <- assign(testdata, predcs$cs)
   bestcost <- get_assignment_cost(bestassign$a, bestassign$costmat)
   bestscale <- 0
+  sink(filename)
   # stdevs <- NULL
   for(i in scales){
     ith_cost <- NULL
     for(j in 1:iter){
       predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+      predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
       a <- assign(testdata, predcs_mod$V1)
       pred_cost = get_assignment_cost(a$a, a$costmat)
       if(pred_cost < bestcost){
@@ -77,6 +80,7 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
         bestscale <- i
       }
       ith_cost <- c(ith_cost, as.numeric(pred_cost))
+      print(a$a)
     }
     costs <- c(costs, mean(ith_cost))
     #if(iter > 1)
@@ -85,12 +89,49 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
   if(doplot)
     plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
        main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
+  sink(type = "message")
+  sink()
   print(summary(costs))
   print("Best")
   print(bestassign$a)
   print(paste("Cost: ",bestcost))
   print(paste("Scale: ",bestscale))
 }
+
+# Perform multiple iterations at each scale and stores an R object with data in it
+hung_trials <- function(maxscale, inc, iter){
+  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+  scales <- range01(1:inc)
+  masterlist <- list()
+  for(i in scales){
+    if(i == 0)
+      next
+    mat <- matrix(NA, nrow=iter, ncol=nrow(predcs))
+    prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
+    scale_costs <- NULL
+    acc_resid <- NULL
+    acc_nucleus <- NULL
+    
+    for(j in 1:iter){
+      predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+      predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
+      a <- assign(testdata, predcs_mod$V1)
+      pred_cost = get_assignment_cost(a$a, a$costmat)
+      scale_costs <- c(scale_costs, pred_cost)
+      
+      mat[j,] <- as.vector(a$a)
+      prob = prob + a$a_mat
+      d <- cbind(predcs_mod, refdata[as.vector(a$a),])
+      acc_resid <- c(acc_resid, mean(as.character(d[,2])==as.character(d[,6])))
+      acc_nucleus <- c(acc_nucleus, mean(d[,1]==d[,5]))
+    }
+    key <- paste("scale",i,sep="")
+    masterlist[[key]] = list(costs=scale_costs, assignments=mat, iterations=iter, probs=prob/iter, 
+                             acc_resid=acc_resid, acc_nuc=acc_nucleus)
+  }
+  save(masterlist, file=paste("output/",maxscale,"scale_",(maxscale/(inc - 1)),"inc_",iter,"iter.RData",sep=""))
+}
+
 
 # Things to test, different maxscale, different iterations
 # Multiple Iterations at each scale level
@@ -115,6 +156,7 @@ plot_diffs <- function(maxscale=1, inc){
     if(i == 0)
       next
     predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
+    
     a <- assign(testdata, predcs_mod$V1)
     diffs <- c(diffs, get_diffs(original$a, a$a))
   }
@@ -122,35 +164,9 @@ plot_diffs <- function(maxscale=1, inc){
        main="Number of Different Assignment at each scale")
 }
 
-hung_trials <- function(maxscale, inc, iter){
-  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
-  scales <- range01(1:inc)
-  masterlist <- list()
-  for(i in scales){
-    if(i == 0)
-      next
-    mat <- matrix(NA, nrow=iter, ncol=nrow(predcs))
-    prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
-    scale_costs <- NULL
-    acc_resid <- NULL
-    acc_nucleus <- NULL
-    
-    for(j in 1:iter){
-      predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=i)
-      a <- assign(testdata, predcs_mod$V1)
-      pred_cost = get_assignment_cost(a$a, a$costmat)
-      scale_costs <- c(scale_costs, pred_cost)
-      
-      mat[j,] <- as.vector(a$a)
-      prob = prob + a$a_mat
-      d <- cbind(predcs_mod, refdata[as.vector(a$a),])
-      acc_resid <- c(acc_resid, mean(as.character(d[,2])==as.character(d[,6])))
-      acc_nucleus <- c(acc_nucleus, mean(d[,1]==d[,5]))
-    }
-    key <- paste("scale",i,sep="")
-    masterlist[[key]] = list(costs=scale_costs, assignments=mat, iterations=iter, probs=prob/iter, 
-                             acc_resid=acc_resid, acc_nuc=acc_nucleus)
-  }
-  save(masterlist, file=paste("output/",maxscale,"scale_",(maxscale/(inc - 1)),"inc_",iter,"iter.RData",sep=""))
+# Will find assignment for specific category - resid and nucleus, incomplete
+get_assignment_by_cat <- function(){
+  x <- which(refdata$resid==1&refdata$nucleus=="C1'")
+  print(refdata[x,])
 }
 
