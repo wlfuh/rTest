@@ -168,5 +168,42 @@ plot_diffs <- function(maxscale=1, inc){
 get_assignment_by_cat <- function(){
   x <- which(refdata$resid==1&refdata$nucleus=="C1'")
   print(refdata[x,])
+  
+  joined_cs <- data.frame()
+  for(i in 1:nrow(predcs)){
+    #print(predcs[i,2])
+    ref_cs <- refdata[which(refdata$resid==as.integer(predcs[i,3])
+                            &refdata$nucleus==as.character(predcs[i,2])),4]
+    #print(ref_cs)
+    newrow <- data.frame(resid=as.integer(predcs[i,3]), nucleus=as.character(predcs[i,2])
+      ,cs_pred=as.numeric(predcs[i,4]), cs=ref_cs, diff=ref_cs-as.numeric(predcs[i,4]))
+    if(nrow(joined_cs) == 0)
+      joined_cs <- newrow
+    else
+      joined_cs = rbind(joined_cs, newrow)
+  }
+  print(joined_cs)
+  return(joined_cs)
+}
+
+# plot mean accuracy over iterations
+plot_accuracy <- function(){
+  load("~/rTest/output/1.5scale_0.25inc_10000iter.RData")
+  accu_res_total <- NULL
+  accu_nuc_total <- NULL
+  maxscale <- 1.5
+  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+  scales <- range01(1:(length(masterlist)+1))
+  for(i in masterlist){
+    accu_res <- i$acc_resid
+    accu_nuc <- i$acc_nuc
+    accu_res_total <- c(accu_res_total,mean(accu_res))
+    accu_nuc_total <- c(accu_nuc_total,mean(accu_nuc))
+  }
+  layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+  plot(scales[2:length(scales)], accu_res_total, xlab="Scale", ylab="Accuracy", main=paste("Accuracy of Residue ID by Scale",
+          masterlist$scale0.25$iterations, "iterations"))
+  plot(scales[2:length(scales)], accu_nuc_total, xlab="Scale", ylab="Accuracy", main=paste("Accuracy of Nucleus by Scale",
+          masterlist$scale0.25$iterations, "iterations"))
 }
 
