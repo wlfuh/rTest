@@ -164,37 +164,6 @@ plot_diffs <- function(maxscale=1, inc){
        main="Number of Different Assignment at each scale")
 }
 
-# Will find assignment for specific category - resid and nucleus, incomplete
-get_assignment_by_cat <- function(){
-  x <- which(refdata$resid==1&refdata$nucleus=="C1'")
-  print(refdata[x,])
-  
-  joined_cs <- data.frame()
-  for(i in 1:nrow(predcs)){
-    #print(predcs[i,2])
-    ref_cs <- refdata[which(refdata$resid==as.integer(predcs[i,3])
-                            &refdata$nucleus==as.character(predcs[i,2])),4]
-    #print(ref_cs)
-    newrow <- data.frame(resid=as.integer(predcs[i,3]), nucleus=as.character(predcs[i,2])
-      ,cs_pred=as.numeric(predcs[i,4]), cs=ref_cs, diff=ref_cs-as.numeric(predcs[i,4]), error=predcs[i,6])
-    if(nrow(joined_cs) == 0)
-      joined_cs <- newrow
-    else
-      joined_cs = rbind(joined_cs, newrow)
-  }
-  print(joined_cs)
-  return(joined_cs)
-}
-
-plot_joint <- function(){
-  joined_cs <- get_assignment_by_cat()
-  #layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
-  plot(joined_cs$cs_pred, joined_cs$cs, xlab="Predicted Chemical Shift", 
-       ylab="Measured Chemical Shift", main="Predicted vs Measured Chemical Shift for Specific Residue and Nucleus")
-  max_cs <- max(joined_cs$cs_pred, joined_cs$cs)
-  segments(x0=0,y0=0,x1=as.integer(max_cs),y1=as.integer(max_cs))
-}
-
 # plot mean accuracy over iterations
 plot_accuracy <- function(){
   load("~/rTest/output/1.5scale_0.25inc_10000iter.RData")
@@ -214,5 +183,64 @@ plot_accuracy <- function(){
           masterlist$scale0.25$iterations, "iterations"))
   plot(scales[2:length(scales)], accu_nuc_total, xlab="Scale", ylab="Accuracy", main=paste("Accuracy of Nucleus by Scale",
           masterlist$scale0.25$iterations, "iterations"))
+}
+
+# plots average cost for each iteration
+plot_avgcost <- function(){
+  load("~/rTest/output/1.5scale_0.25inc_10000iter.RData")
+  cost_total <- NULL
+  maxscale <- 1.5
+  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+  scales <- range01(1:(length(masterlist)+1))
+  for(i in masterlist){
+    costs <- i$cost
+    cost_total <- c(cost_total,mean(costs))
+  }
+  plot(scales[2:length(scales)], cost_total, xlab="Scale", ylab="Average Hungarian Cost", main=paste("Average Hungarian Cost by Scale",
+                                                                                           masterlist$scale0.25$iterations, "iterations"))
+}
+
+# Will find assignment for specific category - resid and nucleus
+get_assignment_by_cat <- function(){
+  x <- which(refdata$resid==1&refdata$nucleus=="C1'")
+  print(refdata[x,])
+  
+  joined_cs <- data.frame()
+  for(i in 1:nrow(predcs)){
+    #print(predcs[i,2])
+    ref_cs <- refdata[which(refdata$resid==as.integer(predcs[i,3])
+                            &refdata$nucleus==as.character(predcs[i,2])),4]
+    #print(ref_cs)
+    cs_diff <- ref_cs-as.numeric(predcs[i,4])
+    newrow <- data.frame(resid=as.integer(predcs[i,3]), nucleus=as.character(predcs[i,2])
+                         ,cs_pred=as.numeric(predcs[i,4]), cs=ref_cs, diff=cs_diff, error=predcs[i,6],
+                         std_error=cs_diff/predcs[i,6])
+    if(nrow(joined_cs) == 0)
+      joined_cs <- newrow
+    else
+      joined_cs = rbind(joined_cs, newrow)
+  }
+  print(joined_cs)
+  return(joined_cs)
+}
+
+# plot chemical shift of predicted and measured on same graph (x,y), x = predicted, y = measured
+plot_joint <- function(){
+  joined_cs <- get_assignment_by_cat()
+  #layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+  plot(joined_cs$cs_pred, joined_cs$cs, xlab="Predicted Chemical Shift", 
+       ylab="Measured Chemical Shift", main="Predicted vs Measured Chemical Shift for Specific Residue and Nucleus")
+  max_cs <- max(joined_cs$cs_pred, joined_cs$cs)
+  segments(x0=0,y0=0,x1=as.integer(max_cs),y1=as.integer(max_cs))
+  return(joined_cs)
+}
+
+# boxplot of each category, plotting standard errors in chemical shift 
+plot_histo <- function(){
+  joined_cs <- get_assignment_by_cat()
+  errbox <- boxplot(joined_cs$std_error, ylab="Standard Error", main="Histogram of Standard Errors")
+  print(errbox)
+  print(length(errbox$out))
+  print(1-length(errbox$out)/errbox$n)
 }
 
