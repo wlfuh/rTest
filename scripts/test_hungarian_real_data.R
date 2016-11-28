@@ -176,7 +176,7 @@ get_assignment_by_cat <- function(){
                             &refdata$nucleus==as.character(predcs[i,2])),4]
     #print(ref_cs)
     newrow <- data.frame(resid=as.integer(predcs[i,3]), nucleus=as.character(predcs[i,2])
-      ,cs_pred=as.numeric(predcs[i,4]), cs=ref_cs, diff=ref_cs-as.numeric(predcs[i,4]))
+      ,cs_pred=as.numeric(predcs[i,4]), cs=ref_cs, diff=ref_cs-as.numeric(predcs[i,4]), error=predcs[i,6])
     if(nrow(joined_cs) == 0)
       joined_cs <- newrow
     else
@@ -184,6 +184,15 @@ get_assignment_by_cat <- function(){
   }
   print(joined_cs)
   return(joined_cs)
+}
+
+plot_joint <- function(){
+  joined_cs <- get_assignment_by_cat()
+  #layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
+  plot(joined_cs$cs_pred, joined_cs$cs, xlab="Predicted Chemical Shift", 
+       ylab="Measured Chemical Shift", main="Predicted vs Measured Chemical Shift for Specific Residue and Nucleus")
+  max_cs <- max(joined_cs$cs_pred, joined_cs$cs)
+  segments(x0=0,y0=0,x1=as.integer(max_cs),y1=as.integer(max_cs))
 }
 
 # plot mean accuracy over iterations
