@@ -84,11 +84,11 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
     }
     costs <- c(costs, mean(ith_cost))
     #if(iter > 1)
-      #stdevs <- c(stdevs,sd(ith_cost))
+    #stdevs <- c(stdevs,sd(ith_cost))
   }
   if(doplot)
     plot(scales, costs, xlab=paste("Scale (incrementing by ", maxscale/inc, " )"), ylab="Hungarian Assignment Cost",
-       main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
+         main=paste("Hungarian Assignment Costs based on Scaled Random Norm Errors\n", iter, " iterations for each"))
   sink(type = "message")
   sink()
   print(summary(costs))
@@ -180,9 +180,9 @@ plot_accuracy <- function(){
   }
   layout(matrix(c(1, 1, 2, 2), 2, 2, byrow = TRUE))
   plot(scales[2:length(scales)], accu_res_total, xlab="Scale", ylab="Accuracy", main=paste("Accuracy of Residue ID by Scale",
-          masterlist$scale0.25$iterations, "iterations"))
+                                                                                           masterlist$scale0.25$iterations, "iterations"))
   plot(scales[2:length(scales)], accu_nuc_total, xlab="Scale", ylab="Accuracy", main=paste("Accuracy of Nucleus by Scale",
-          masterlist$scale0.25$iterations, "iterations"))
+                                                                                           masterlist$scale0.25$iterations, "iterations"))
 }
 
 # plots average cost for each iteration
@@ -197,7 +197,7 @@ plot_avgcost <- function(){
     cost_total <- c(cost_total,mean(costs))
   }
   plot(scales[2:length(scales)], cost_total, xlab="Scale", ylab="Average Hungarian Cost", main=paste("Average Hungarian Cost by Scale",
-                                                                                           masterlist$scale0.25$iterations, "iterations"))
+                                                                                                     masterlist$scale0.25$iterations, "iterations"))
 }
 
 # Will find assignment for specific category - resid and nucleus
@@ -244,3 +244,31 @@ plot_histo <- function(){
   print(1-length(errbox$out)/errbox$n)
 }
 
+
+
+# find most probable assignment, returns cs shift, iteration, scale
+# takes in optional arguments
+#      iter - numeric vector of specific iterations to look at
+#      scale - numeric vector of specific scales to look at
+#      ** ignores any iterations or scales that are not present
+# DEFAULT: Looks at all possible iteration and scales
+find_probable <- function(iter=NULL,scale=NULL){
+  if(is.null(iter))
+    return(NULL)
+  if(is.null(scale))
+    return(NULL)
+  max_scale = 1.5
+  most_probable <- list(cs=predcs, assigned=NA, iter=NA, scale=NA, assign_error=Inf)
+  
+  for(i in iter){
+    for(s in scale){
+      load(paste("~/rTest/output/",max_scale,"scale_0.25inc_",i,"iter.RData",sep=""))
+      predcs_prob <- masterlist[[paste("scale",s,sep="")]]$probs
+      predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
+      tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+      abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+      #TODO, calculate error (mean of abc), if less update most_probable
+    }
+  }
+  return(most_probable)
+}
