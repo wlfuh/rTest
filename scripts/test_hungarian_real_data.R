@@ -99,9 +99,15 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
 }
 
 # Perform multiple iterations at each scale and stores an R object with data in it
-hung_trials <- function(maxscale, inc, iter){
-  range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
-  scales <- range01(1:inc)
+hung_trials <- function(maxscale, inc, iter, savef=TRUE){
+  
+  if(inc == 1)
+    scales = 1
+  else{
+    range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+    scales <- range01(1:inc)  
+  }
+  
   masterlist <- list()
   for(i in scales){
     if(i == 0)
@@ -129,7 +135,13 @@ hung_trials <- function(maxscale, inc, iter){
     masterlist[[key]] = list(costs=scale_costs, assignments=mat, iterations=iter, probs=prob/iter, 
                              acc_resid=acc_resid, acc_nuc=acc_nucleus)
   }
-  save(masterlist, file=paste("output/",maxscale,"scale_",(maxscale/(inc - 1)),"inc_",iter,"iter.RData",sep=""))
+  if(savef){
+    if(inc == 1)
+      scalep <- 1
+    else
+      scalep <- (maxscale/(inc - 1))
+    save(masterlist, file=paste("output/",maxscale,"scale_",scalep,"inc_",iter,"iter.RData",sep=""))
+  }
 }
 
 
@@ -252,23 +264,59 @@ plot_histo <- function(){
 #      scale - numeric vector of specific scales to look at
 #      ** ignores any iterations or scales that are not present
 # DEFAULT: Looks at all possible iteration and scales
-find_probable <- function(iter=NULL,scale=NULL){
+find_probable <- function(iter=NULL,scale=NULL,method='mean'){
   if(is.null(iter))
-    return(NULL)
+    iter <- c(10,100,1000,5000,10000)
   if(is.null(scale))
-    return(NULL)
+    scale <- c(0.25,0.5,0.75,1,1.25,1.5)
   max_scale = 1.5
   most_probable <- list(cs=predcs, assigned=NA, iter=NA, scale=NA, assign_error=Inf)
   
   for(i in iter){
+    load(paste("~/rTest/output/",max_scale,"scale_0.25inc_",i,"iter.RData",sep=""))
     for(s in scale){
-      load(paste("~/rTest/output/",max_scale,"scale_0.25inc_",i,"iter.RData",sep=""))
       predcs_prob <- masterlist[[paste("scale",s,sep="")]]$probs
       predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
       tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
-      abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
-      #TODO, calculate error (mean of abc), if less update most_probable
+      
+      if(method=='mean'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+        if(mean(abc$V1) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+      }
+      else if(method=='cor'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){cor(x$cs.x,x$assigned)})
+        
+        if(abs(1-mean(abc$V1, na.rm=TRUE)) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=abs(1-mean(abc$V1, na.rm=TRUE)))
+      }
+      else if(method=='stderr'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs((x$cs.x-x$assigned)/ x$error))})
+        
+        if(mean(abc$V1) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+      }
+    
     }
   }
   return(most_probable)
+}
+
+# Given a number iterations, plot error by scale
+plot_probable_byscale <- function(iter){
+  scale <- c(0.25,0.5,0.75,1,1.25,1.5)
+  error <- NULL
+  for(s in scale){
+    obj <- find_probable(iter=iter,scale=s)
+    error <- c(error,obj$assign_error)
+  }
+  plot(scale,error,main=paste("Assignment Error for",iter,"iterations of Hungarian Algorithm at each scale"))
+}
+
+# for file 1scale_1inc_50000iter.RData
+find_probable_special <- function(){
+  load("~/rTest/output/1scale_1inc_50000iter.RData")
+  predcs_prob <- masterlist$scale1$probs
+  predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
+  tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
 }
