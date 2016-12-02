@@ -314,9 +314,33 @@ plot_probable_byscale <- function(iter){
 }
 
 # for file 1scale_1inc_50000iter.RData
-find_probable_special <- function(){
+find_probable_special <- function(method="mean"){
   load("~/rTest/output/1scale_1inc_50000iter.RData")
   predcs_prob <- masterlist$scale1$probs
   predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
   tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+  
+  most_probable <- list(cs=predcs, assigned=NA, iter=NA, scale=NA, assign_error=Inf)
+  
+  i <- 50000
+  s <- 1
+  
+  if(method=='mean'){
+    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+    if(mean(abc$V1) < most_probable$assign_error)
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+  }
+  else if(method=='cor'){
+    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){cor(x$cs.x,x$assigned)})
+    
+    if(abs(1-mean(abc$V1, na.rm=TRUE)) < most_probable$assign_error)
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=abs(1-mean(abc$V1, na.rm=TRUE)))
+  }
+  else if(method=='stderr'){
+    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs((x$cs.x-x$assigned)/ x$error))})
+    
+    if(mean(abc$V1) < most_probable$assign_error)
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+  }
+  return(most_probable)
 }
