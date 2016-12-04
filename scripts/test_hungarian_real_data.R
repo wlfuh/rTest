@@ -99,12 +99,12 @@ plot_scaled <- function(maxscale=1, inc, iter=1, doplot=TRUE){
 }
 
 # Perform multiple iterations at each scale and stores an R object with data in it
-hung_trials <- function(maxscale, inc, iter, savef=TRUE){
+hung_trials <- function(maxscale, inc, iter, minscale=0,scales=NULL, notes="",savef=TRUE){
   
-  if(inc == 1)
-    scales = 1
+  if(inc == 1 && is.null(scales))
+    scales = maxscale
   else{
-    range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale }
+    range01 <- function(x){ (x - min(x))/(max(x)-min(x)) * maxscale + minscale }
     scales <- range01(1:inc)  
   }
   
@@ -137,10 +137,11 @@ hung_trials <- function(maxscale, inc, iter, savef=TRUE){
   }
   if(savef){
     if(inc == 1)
-      scalep <- 1
+      scalep <- maxscale
     else
       scalep <- (maxscale/(inc - 1))
-    save(masterlist, file=paste("output/",maxscale,"scale_",scalep,"inc_",iter,"iter.RData",sep=""))
+    filename <- paste("output/",notes,maxscale,"scale_",scalep,"inc_",iter,"iter.RData",sep="")
+    save(masterlist, file=filename)
   }
 }
 
@@ -264,16 +265,19 @@ plot_histo <- function(){
 #      scale - numeric vector of specific scales to look at
 #      ** ignores any iterations or scales that are not present
 # DEFAULT: Looks at all possible iteration and scales
-find_probable <- function(iter=NULL,scale=NULL,method='mean'){
+# Now works with specific case, 50000 iter, scale = 1, max_scale = 1
+# Problem: Duplicate assignments can occur
+find_probable <- function(iter=NULL,scale=NULL,max_scale=1,method='mean'){
   if(is.null(iter))
     iter <- c(10,100,1000,5000,10000)
   if(is.null(scale))
     scale <- c(0.25,0.5,0.75,1,1.25,1.5)
-  max_scale = 1.5
+  
   most_probable <- list(cs=predcs, assigned=NA, iter=NA, scale=NA, assign_error=Inf)
+  scale_inc <- max_scale / length(scale)
   
   for(i in iter){
-    load(paste("~/rTest/output/",max_scale,"scale_0.25inc_",i,"iter.RData",sep=""))
+    load(paste("~/rTest/output/",max_scale,"scale_",scale_inc,"inc_",i,"iter.RData",sep=""))
     for(s in scale){
       predcs_prob <- masterlist[[paste("scale",s,sep="")]]$probs
       predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
@@ -296,7 +300,7 @@ find_probable <- function(iter=NULL,scale=NULL,method='mean'){
         if(mean(abc$V1) < most_probable$assign_error)
           most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
       }
-    
+      
     }
   }
   return(most_probable)
@@ -313,34 +317,55 @@ plot_probable_byscale <- function(iter){
   plot(scale,error,main=paste("Assignment Error for",iter,"iterations of Hungarian Algorithm at each scale"))
 }
 
-# for file 1scale_1inc_50000iter.RData
-find_probable_special <- function(method="mean"){
-  load("~/rTest/output/1scale_1inc_50000iter.RData")
-  predcs_prob <- masterlist$scale1$probs
-  predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
-  tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+
+'
+Idea 1: same as before, but when using max, use k-largest when assignment has already been made, where k is the number of previously assigned chemical when matching the k - largest probability
+
+i.e 3 -> 7, 4 ->7 but since 7 is already used 4 -> 9
+
+Idea 2: Do 1 - probability matrix, apply Hungarian algorithm to find smallest cost assignment, use the returned output
+'
+
+# idea 2 Hungarian Algorithm on probabilities
+# need to try 1.5
+find_probable_hung <- function(iter=NULL,scale=NULL,max_scale=1.5,method='mean'){
+  if(is.null(iter))
+    iter <- c(10,100,1000,5000,10000)
+  if(is.null(scale))
+    scale <- c(0.25,0.5,0.75,1,1.25,1.5)
   
   most_probable <- list(cs=predcs, assigned=NA, iter=NA, scale=NA, assign_error=Inf)
+  scale_inc <- max_scale / length(scale)
   
-  i <- 50000
-  s <- 1
-  
-  if(method=='mean'){
-    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
-    if(mean(abc$V1) < most_probable$assign_error)
-      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
-  }
-  else if(method=='cor'){
-    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){cor(x$cs.x,x$assigned)})
-    
-    if(abs(1-mean(abc$V1, na.rm=TRUE)) < most_probable$assign_error)
-      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=abs(1-mean(abc$V1, na.rm=TRUE)))
-  }
-  else if(method=='stderr'){
-    abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs((x$cs.x-x$assigned)/ x$error))})
-    
-    if(mean(abc$V1) < most_probable$assign_error)
-      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+  for(i in iter){
+    load(paste("~/rTest/output/",max_scale,"scale_",scale_inc,"inc_",i,"iter.RData",sep=""))
+    for(s in scale){
+      predcs_prob <- masterlist[[paste("scale",s,sep="")]]$probs
+      a <- solve_LSAP(1 - predcs_prob)
+      predcs$assigned <- refdata[a,"cs"]
+      #predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
+      tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+      
+      if(method=='mean'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+        if(mean(abc$V1) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+      }
+      else if(method=='cor'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){cor(x$cs.x,x$assigned)})
+        
+        if(abs(1-mean(abc$V1, na.rm=TRUE)) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=abs(1-mean(abc$V1, na.rm=TRUE)))
+      }
+      else if(method=='stderr'){
+        abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs((x$cs.x-x$assigned)/ x$error))})
+        
+        if(mean(abc$V1) < most_probable$assign_error)
+          most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=s, assign_error=mean(abc$V1))
+      }
+      
+    }
   }
   return(most_probable)
+  
 }
