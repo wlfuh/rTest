@@ -311,11 +311,12 @@ plot_probable_byscale <- function(iter){
   scale <- c(0.25,0.5,0.75,1,1.25,1.5)
   error <- NULL
   for(s in scale){
-    obj <- find_probable(iter=iter,scale=s)
+    obj <- find_probable_hung(iter=iter,scale=s)
     error <- c(error,obj$assign_error)
   }
   plot(scale,error,main=paste("Assignment Error for",iter,"iterations of Hungarian Algorithm at each scale"))
 }
+
 
 
 '
@@ -368,4 +369,46 @@ find_probable_hung <- function(iter=NULL,scale=NULL,max_scale=1.5,method='mean')
   }
   return(most_probable)
   
+}
+
+# get correlation data between assigned and actual
+get_correlation <- function(method="mean", nuclei=c("H","C")){
+  res <- find_probable_hung(method=method)
+  # do more stuff, need to merge predcs with actual assignment and find correlation data with assigned ref and actual ref
+  tmp <- merge(res$cs,refdata, by=c("resid","nucleus"),suffixes=c(".pred",".real"))
+  dataCorr <- data.frame(nuc="B1",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
+  #names(dataCorr) <- c("r","r.squared","RMSE","MAE")
+  for(nuc in nuclei){
+    modeltmp <- lm(assigned~cs.real, data=tmp[substr(tmp$nucleus,1,1)==nuc,])
+    #plot(modeltmp)
+    #print(paste(n,"Nuclei"))
+    #print(summary(modeltmp))
+    rSquare <- summary(modeltmp)$r.squared
+    if(nrow(dataCorr) == 0)
+      dataCorr <- c(as.character(nuc),sqrt(rSquare),rSquare,sqrt(mean((tmp$assigned-tmp$cs.real)^2)),
+                    mean(abs(tmp$assigned-tmp$cs.real)))
+    else
+      dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((tmp$assigned-tmp$cs.real)^2)),
+                                 mean(abs(tmp$assigned-tmp$cs.real))))
+    #print(paste("RMSE:",sqrt(mean((tmp$assigned-tmp$cs.real)^2))))
+    #print(paste("MAE:",mean(abs(tmp$assigned-tmp$cs.real))))
+  }
+  dataCorr <- dataCorr[rownames(dataCorr) > 1,]
+  return(dataCorr)
+}
+
+# plot the data in get_correlation
+plot_correlation <- function(){
+  #plot(modeltmp$model)
+  #abline(modeltmp)
+}
+
+plot_probable_byiter <- function(scale){
+  iter <- c(10,100,1000,5000,10000)
+  error <- NULL
+  for(i in iter){
+    obj <- find_probable_hung(iter=i,scale=scale)
+    error <- c(error,obj$assign_error)
+  }
+  plot(iter,error,main=paste("Assignment Error for",scale,"scale of Hungarian Algorithm at each iteration"))
 }
