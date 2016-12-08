@@ -374,33 +374,41 @@ find_probable_hung <- function(iter=NULL,scale=NULL,max_scale=1.5,method='mean')
 # get correlation data between assigned and actual
 get_correlation <- function(method="mean", nuclei=c("H","C")){
   res <- find_probable_hung(method=method)
-  # do more stuff, need to merge predcs with actual assignment and find correlation data with assigned ref and actual ref
   tmp <- merge(res$cs,refdata, by=c("resid","nucleus"),suffixes=c(".pred",".real"))
   dataCorr <- data.frame(nuc="B1",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
-  #names(dataCorr) <- c("r","r.squared","RMSE","MAE")
+  
   for(nuc in nuclei){
-    modeltmp <- lm(assigned~cs.real, data=tmp[substr(tmp$nucleus,1,1)==nuc,])
-    #plot(modeltmp)
-    #print(paste(n,"Nuclei"))
-    #print(summary(modeltmp))
+    subtmp <- tmp[substr(tmp$nucleus,1,1)==nuc,]
+    modeltmp <- lm(assigned~cs.real, data=subtmp)
     rSquare <- summary(modeltmp)$r.squared
     if(nrow(dataCorr) == 0)
-      dataCorr <- c(as.character(nuc),sqrt(rSquare),rSquare,sqrt(mean((tmp$assigned-tmp$cs.real)^2)),
-                    mean(abs(tmp$assigned-tmp$cs.real)))
+      dataCorr <- c(as.character(nuc),sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
+                    mean(abs(subtmp$assigned-subtmp$cs.real)))
     else
-      dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((tmp$assigned-tmp$cs.real)^2)),
-                                 mean(abs(tmp$assigned-tmp$cs.real))))
-    #print(paste("RMSE:",sqrt(mean((tmp$assigned-tmp$cs.real)^2))))
-    #print(paste("MAE:",mean(abs(tmp$assigned-tmp$cs.real))))
+      dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
+                                   mean(abs(subtmp$assigned-subtmp$cs.real))))
   }
+  
   dataCorr <- dataCorr[rownames(dataCorr) > 1,]
   return(dataCorr)
 }
 
 # plot the data in get_correlation
-plot_correlation <- function(){
+plot_correlation <- function(method, nuclei){
   #plot(modeltmp$model)
   #abline(modeltmp)
+  res <- find_probable_hung(method=method)
+  tmp <- merge(res$cs,refdata, by=c("resid","nucleus"),suffixes=c(".pred",".real"))
+  modeltmp <- lm(assigned~cs.real, data=tmp[substr(tmp$nucleus,1,1)==nuclei,])
+  if(method=="mean")
+    method = "Mean"
+  else if(method=="cor")
+    method = "Correlation"
+  else if(method=="stderr")
+    method = "Standard Error"
+  plot(modeltmp$model, xlab="Assigned Chemical Shift (ppm)", ylab="Actual Chemical Shift (ppm)"
+       ,main=paste("Assigned vs Actual Chemical Shift (ppm) in",nuclei,"Nuclei with Method",method))
+  abline(modeltmp)
 }
 
 plot_probable_byiter <- function(scale){
