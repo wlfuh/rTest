@@ -372,8 +372,9 @@ find_probable_hung <- function(iter=NULL,scale=NULL,max_scale=1.5,method='mean')
 }
 
 # get correlation data between assigned and actual
-get_correlation <- function(method="mean", nuclei=c("H","C")){
-  res <- find_probable_hung(method=method)
+get_correlation <- function(method="mean", nuclei=c("H","C"), res=NULL){
+  if(is.null(res))
+    res <- find_probable_hung(method=method)
   tmp <- merge(res$cs,refdata, by=c("resid","nucleus"),suffixes=c(".pred",".real"))
   dataCorr <- data.frame(nuc="B1",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   
@@ -411,12 +412,42 @@ plot_correlation <- function(method, nuclei){
   abline(modeltmp)
 }
 
-plot_probable_byiter <- function(scale){
+plot_probable_byiter <- function(scale,nuc,method="mean"){
   iter <- c(10,100,1000,5000,10000)
   error <- NULL
   for(i in iter){
-    obj <- find_probable_hung(iter=i,scale=scale)
-    error <- c(error,obj$assign_error)
+    load(paste("output/1.5scale_0.25inc_",i,"iter.RData",sep=""))
+    
+    
+    predcs_prob <- masterlist[[paste("scale",scale,sep="")]]$probs
+    a <- solve_LSAP(1 - predcs_prob)
+    predcs$assigned <- refdata[a,"cs"]
+    #predcs$assigned <- refdata[apply(predcs_prob, 1, which.max),"cs"]
+    tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+    most_probable <- NULL
+    if(method=='mean'){
+      abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=scale, assign_error=mean(abc$V1))
+    }
+    else if(method=='cor'){
+      abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){cor(x$cs.x,x$assigned)})
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=scale, assign_error=abs(1-mean(abc$V1, na.rm=TRUE)))
+    }
+    else if(method=='stderr'){
+      abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs((x$cs.x-x$assigned)/ x$error))})
+      most_probable <- list(cs=predcs, assigned=abc, iter=i, scale=scale, assign_error=mean(abc$V1))
+    }
+    
+    
+    obj <- get_correlation(method=method, res=most_probable)
+    error <- c(error,obj[obj$nuc==nuc,]$r)
   }
-  plot(iter,error,main=paste("Assignment Error for",scale,"scale of Hungarian Algorithm at each iteration"))
+  if(method=="mean")
+    method = "Mean"
+  else if(method=="cor")
+    method = "Correlation"
+  else if(method=="stderr")
+    method = "Standard Error"
+  plot(iter,error,main=paste("Assignment Correlation for",nuc,"at each Iteration at Scale",scale,
+                             "with Method",method), xlab="Iterations", ylab="Correlation (R)")
 }
