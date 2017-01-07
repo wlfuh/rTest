@@ -20,7 +20,6 @@ assign <- function(x, y){
   }
   return(list(a=a,a_mat=a_mat,costmat=costmat))
 }
-
 get_assignment_cost <- function(a, costmat){
   require(clue)
   # get cost of assignment

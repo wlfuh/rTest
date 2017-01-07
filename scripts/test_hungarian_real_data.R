@@ -7,12 +7,8 @@ source("scripts/assignments.R")
 refdata <- read.table("data/measured_shifts_2KOC.dat", header=FALSE)
 colnames(refdata) <- c("resname","resid","nucleus","cs","dummy")
 
-refdata2 <- read.table("data/test.dat", header=FALSE)
-colnames(refdata2) <- c("resname","resid","nucleus","cs","error")
-
 # vector of reference values
 testdata <- refdata[,"cs"]
-testdata2 <- refdata2[,"cs"]
 
 # vector of subset
 predcs <- read.table("data/predicted_shifts_2KOC.dat", header=FALSE)
