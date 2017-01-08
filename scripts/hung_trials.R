@@ -14,6 +14,8 @@ add_noise <- function(x, scale=1){
 # Perform iteration of assignments and returns most probable assignment
 hung_trials <- function(predcs, iter=5000, scale=0.75){
   prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
+  testdata <- refdata[,"cs"]
+  
   for(i in 1:iter){
     predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=scale)
     predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
