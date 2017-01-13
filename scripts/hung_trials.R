@@ -54,5 +54,5 @@ get_correlation <- function(res, nuclei=c("H","C")){
   }
   
   dataCorr <- dataCorr[rownames(dataCorr) > 1,]
-  return(dataCorr)
+  return(list(h=dataCorr[1,],c=dataCorr[2,]))
 }
