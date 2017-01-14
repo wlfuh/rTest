@@ -12,7 +12,7 @@ add_noise <- function(x, scale=1){
 }
 
 # Perform iteration of assignments and returns most probable assignment
-hung_trials <- function(predcs, iter=5000, scale=0.75){
+hung_trials <- function(predcs, iter=5000, scale=0.75,method="mean"){
   prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
   testdata <- refdata[,"cs"]
   
@@ -30,7 +30,22 @@ hung_trials <- function(predcs, iter=5000, scale=0.75){
   predcs$assigned <- refdata[a,"cs"]
   
   tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
-  abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = function(x){mean(abs(x$cs.x-x$assigned))})
+  
+  func <- NULL
+  if(method == 'mean'){
+    func <- function(x){mean(abs(x$cs.x-x$assigned))}
+  }
+  else if(method == 'cor'){
+    func <- function(x){cor(x$cs.x,x$assigned)}
+  }
+  else if(method == 'stderr'){
+    func <- function(x){mean(abs((x$cs.x-x$assigned)/ x$error))}
+  }
+  else{
+    print("Invalid method")
+    return(NULL)
+  }
+  abc <- ddply(.data = tmp, .variables = c("nucleus"), .fun = func)
   
   return(get_correlation(list(cs=predcs, assigned=abc, iter=iter, scale=scale, assign_error=mean(abc$V1))))
 }
@@ -45,11 +60,7 @@ get_correlation <- function(res, nuclei=c("H","C")){
     subtmp <- tmp[substr(tmp$nucleus,1,1)==nuc,]
     modeltmp <- lm(assigned~cs.real, data=subtmp)
     rSquare <- summary(modeltmp)$r.squared
-    if(nrow(dataCorr) == 0)
-      dataCorr <- c(as.character(nuc),sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
-                    mean(abs(subtmp$assigned-subtmp$cs.real)))
-    else
-      dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
+    dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
                                    mean(abs(subtmp$assigned-subtmp$cs.real))))
   }
   

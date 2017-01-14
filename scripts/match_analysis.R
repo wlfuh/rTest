@@ -19,7 +19,7 @@ matchModel <- function(iter=5000, scale=0.75,method="mean"){
   
   hData <- data.frame(model=0,nuc="H",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   cData <- data.frame(model=0,nuc="C",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
-  print(paste("output/hTest",iter,"_iter_",scale,"_scale.csv",sep=""))
+  #print(paste("output/hTest",iter,"_iter_",scale,"_scale.csv",sep=""))
   for(i in 1:levels){
     predcs <- subset(modeldata, modeldata$state==i)
     predcs <- rename(predcs, c("nuclei" = "nucleus", "predCS"="cs"))
@@ -40,7 +40,11 @@ matchModel <- function(iter=5000, scale=0.75,method="mean"){
     cData = rbind(cData, data$c)
   }
   
-  write.csv(hData[rownames(hData) > 1,], file=paste("output/hTest_",iter,"_iter_",scale,"_scale.csv",sep=""))
-  write.csv(cData[rownames(cData) > 1,], file=paste("output/cTest",iter,"_iter_",scale,"_scale.csv",sep=""))
+  write.csv(hData[rownames(hData) > 1,], 
+            file=paste("output/hTest_",iter,"_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
+            #, col.names = c("model","nuc","r","rsquare","RMSE","MAE"))
+  write.csv(cData[rownames(cData) > 1, ], 
+            file=paste("output/cTest",iter,"_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
+            #, col.names = c("model","nuc","r","rsquare","RMSE","MAE"))
   
 }
