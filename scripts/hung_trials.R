@@ -51,19 +51,23 @@ hung_trials <- function(predcs, iter=5000, scale=0.75,method="mean"){
 }
 
 # get correlation data between assigned and actual
-get_correlation <- function(res, nuclei=c("H","C")){
+get_correlation <- function(res, nuclei=c("H","C", "")){
   
   tmp <- merge(res$cs,refdata, by=c("resid","nucleus"),suffixes=c(".pred",".real"))
   dataCorr <- data.frame(nuc="B1",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
-  
+  subtmp <- NULL
   for(nuc in nuclei){
-    subtmp <- tmp[substr(tmp$nucleus,1,1)==nuc,]
+    if(nuc == "")
+      subtmp <- tmp
+    else
+      subtmp <- tmp[substr(tmp$nucleus,1,1)==nuc,]
     modeltmp <- lm(assigned~cs.real, data=subtmp)
     rSquare <- summary(modeltmp)$r.squared
     dataCorr = rbind(dataCorr, c(nuc,sqrt(rSquare),rSquare,sqrt(mean((subtmp$assigned-subtmp$cs.real)^2)),
                                    mean(abs(subtmp$assigned-subtmp$cs.real))))
   }
   
+  
   dataCorr <- dataCorr[rownames(dataCorr) > 1,]
-  return(list(h=dataCorr[1,],c=dataCorr[2,]))
+  return(list(h=dataCorr[1,],c=dataCorr[2,],a=dataCorr[3,]))
 }
