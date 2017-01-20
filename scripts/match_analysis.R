@@ -28,6 +28,11 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
   hData <- data.frame(model=0,nuc="H",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   cData <- data.frame(model=0,nuc="C",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   allData <- data.frame(model=0,nuc="C",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
+  
+  modeldata['assigned'] <- NA
+  temp <- ddply(.data=modeldata, .var=c("state"),.fun = get_assigned_cs, iter=iter, scale=scale)
+  ''
+  return(NULL)
   #print(paste("output/hTest",iter,"_iter_",scale,"_scale.csv",sep=""))
   for(i in 1:levels){
     predcs <- subset(modeldata, modeldata$state==i)
@@ -51,7 +56,7 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
     cData = rbind(cData, data$c)
     allData = rbind(allData, data$a)
   }
-  
+  '
   write.csv(hData[rownames(hData) > 1,], 
             file=paste("output/h",label,"_",iter,"_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
             #, col.names = c("model","nuc","r","rsquare","RMSE","MAE"))
@@ -59,4 +64,5 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
             file=paste("output/c",label,"_",iter,"_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
   write.csv(allData[rownames(cData) > 1, ], 
             file=paste("output/all",label,"_","_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
+  '
 }

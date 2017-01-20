@@ -11,6 +11,33 @@ add_noise <- function(x, scale=1){
   x$cs+rnorm(1, 0, scale*x$error)
 }
 
+# calculate assigned chemical shift values to data
+get_assigned_cs <- function(predcs, iter=5000, scale=0.75){
+  prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
+  testdata <- refdata[,"cs"]
+  
+  for(i in 1:iter){
+    predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=scale)
+    predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
+    
+    a <- assign(testdata, predcs_mod$V1)
+    
+    prob = prob + a$a_mat
+  }
+  
+  predcs_prob <- prob / iter
+  a <- solve_LSAP(1 - predcs_prob)
+  
+  # sets the assignment chemical shift to predicted chemical shift
+  predcs$assigned <- refdata[a,"cs"]
+  
+  #problem, looks like assignments are not aligned for some reason
+  
+  predcs
+}
+
+
+
 # Perform iteration of assignments and returns most probable assignment
 hung_trials <- function(predcs, iter=5000, scale=0.75,method="mean"){
   prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
@@ -27,8 +54,11 @@ hung_trials <- function(predcs, iter=5000, scale=0.75,method="mean"){
   
   predcs_prob <- prob / iter
   a <- solve_LSAP(1 - predcs_prob)
+  
+  # sets the assignment chemical shift to predicted chemical shift
   predcs$assigned <- refdata[a,"cs"]
   
+  # determine actual assignment for given residue id and nucleus
   tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
   
   func <- NULL
