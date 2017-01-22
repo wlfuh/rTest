@@ -11,11 +11,22 @@ add_noise <- function(x, scale=1){
   x$cs+rnorm(1, 0, scale*x$error)
 }
 
+random_seed <- sample(1:1000, 1)
+
 # calculate assigned chemical shift values to data
-get_assigned_cs <- function(predcs, iter=5000, scale=0.75){
+get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname=""){
+  if(dumpname == "")
+    dumpname <- paste(random_seed,"_",iter,"_iterations_",scale,"_scale",sep="")
+  
+  dumpname <- paste("output/state_",predcs$state[1],"_",dumpname,".RData",sep="")
+  
+  predcs <- predcs[order(predcs$resid, predcs$nucleus),]
+  
   prob <- matrix(0, nrow=nrow(predcs), ncol=nrow(refdata))
   testdata <- refdata[,"cs"]
   
+  predcs_list <- NULL
+  assign_list <- NULL
   for(i in 1:iter){
     predcs_mod <- ddply(.dat=predcs, .var=c("resid","nucleus"), .fun = add_noise, scale=scale)
     predcs_mod <- predcs_mod[order(predcs_mod$resid, predcs_mod$nucleus),]
@@ -23,6 +34,8 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75){
     a <- assign(testdata, predcs_mod$V1)
     
     prob = prob + a$a_mat
+    predcs_list <- c(predcs_list, predcs_mod)
+    assign_list <- c(assign_list, a)
   }
   
   predcs_prob <- prob / iter
@@ -31,9 +44,14 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75){
   # sets the assignment chemical shift to predicted chemical shift
   predcs$assigned <- refdata[a,"cs"]
   
-  #problem, looks like assignments are not aligned for some reason
+  tmp <- merge(refdata, predcs, by=c("resid","nucleus"))
+  tmp <- tmp[order(tmp$resid, tmp$nucleus),]
   
-  predcs
+  # TODO, make all the states save in one file, idea: keep global variable that store each result in a list
+  save(predcs_prob, a, predcs, tmp, assign_list, predcs_list, file=dumpname)
+  
+  out <- tmp[,c(7,1,3,2,4,10,8)]
+  rename(out, c("resname.x" = "resname", "cs.x"="cs", "cs.y"="actual"))
 }
 
 
