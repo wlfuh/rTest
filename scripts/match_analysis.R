@@ -30,8 +30,14 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
   allData <- data.frame(model=0,nuc="C",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   
   modeldata['assigned'] <- NA
-  temp <- ddply(.data=modeldata, .var=c("state"),.fun = get_assigned_cs, iter=iter, scale=scale)
+  temp <- ddply(.data=modeldata, .var=c("state"),.fun = get_assigned_cs, iter=iter, scale=scale, dumpname=label)
+  
+  dir.create(paste("output/",label,sep=""), showWarnings = FALSE)
+  
+  write.table(temp, paste("output/",label,"/predicted_shifts_",label,"_modified.txt",sep=""), quote=FALSE)
+  write.csv(temp, paste("output/",label,"/predicted_shifts_",label,"_modified.csv",sep=""), quote=FALSE)
   ''
+  #save_data(paste(label,"_data",sep=""))
   return(NULL)
   #print(paste("output/hTest",iter,"_iter_",scale,"_scale.csv",sep=""))
   for(i in 1:levels){

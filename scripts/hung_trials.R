@@ -13,12 +13,24 @@ add_noise <- function(x, scale=1){
 
 random_seed <- sample(1:1000, 1)
 
+masterlist <- list()
+
+info <- 
+c( "Each index of masterlist represents the corresponding state",
+"predcs_prob = probability matrix",
+"assignments = Hungarian assignments based on probability",
+"predcs = Predicted Chemical shift data",
+"merged_cs = Merged predcs with corresponding cs from reference",
+"assign_list = List of each assignment per iteration",
+"predcs_list = List of predcited chemical shift data modified by noise due to error")
+
 # calculate assigned chemical shift values to data
-get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname=""){
+get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstates=11){
   if(dumpname == "")
     dumpname <- paste(random_seed,"_",iter,"_iterations_",scale,"_scale",sep="")
   
-  dumpname <- paste("output/state_",predcs$state[1],"_",dumpname,".RData",sep="")
+  #dir.create(paste("output/",dumpname,sep=""), showWarnings = FALSE)
+  #dumpname <- paste("output/",dumpname,"/state_",predcs$state[1],".RData",sep="")
   
   predcs <- predcs[order(predcs$resid, predcs$nucleus),]
   
@@ -48,12 +60,24 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname=""){
   tmp <- tmp[order(tmp$resid, tmp$nucleus),]
   
   # TODO, make all the states save in one file, idea: keep global variable that store each result in a list
-  save(predcs_prob, a, predcs, tmp, assign_list, predcs_list, file=dumpname)
+  #save(predcs_prob, a, predcs, tmp, assign_list, predcs_list, file=dumpname)
   
+  masterlist[[predcs$state[1]]] <<- list(predcs_prob=predcs_prob, assignments=a, predcs=predcs, merged_cs=tmp,
+                                        assign_list=assign_list, predcs_list=predcs_list)
+  if(predcs$state[1] == numstates){
+    save_data(paste(dumpname,"_",iter,"_iterations_",scale,"_scale_data",sep=""), folder=dumpname)
+  }
   out <- tmp[,c(7,1,3,2,4,10,8)]
   rename(out, c("resname.x" = "resname", "cs.x"="cs", "cs.y"="actual"))
 }
 
+save_data <- function(filename, folder=""){
+  if(folder != ""){
+    dir.create(paste("output/",folder,sep=""), showWarnings = FALSE)
+    filename <- paste(folder,"/" ,filename, sep="")
+  }
+  save(info, masterlist, file=paste("output/",filename,".RData",sep=""))
+}
 
 
 # Perform iteration of assignments and returns most probable assignment
