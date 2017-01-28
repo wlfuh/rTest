@@ -72,3 +72,20 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
             file=paste("output/all",label,"_","_iter_",scale,"_scale_",method,"_method.csv",sep=""), row.names = FALSE)
   '
 }
+
+analyze <- function(filename){
+  modeldata <- read.table(filename, header=TRUE)
+  
+  modelerror <- ddply(.dat=modeldata, .var=c("state"), 
+      .fun = function(modeldata){
+        errors <- data.frame(state=0, mae=0, rmse=0, r=0)
+        errors$state <- modeldata$state[1]
+        # TODO MAE, RMSE
+        errors$mae <-  mean(abs(modeldata$assigned-modeldata$actual))
+        errors$rmse <- sqrt(mean((modeldata$assigned-modeldata$actual)^2))
+        errors$r <- cor(modeldata$assigned, modeldata$actual)
+        errors
+      })
+  
+  return(modelerror)
+}
