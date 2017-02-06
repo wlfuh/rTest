@@ -25,7 +25,7 @@ c( "Each index of masterlist represents the corresponding state",
 "predcs_list = List of predcited chemical shift data modified by noise due to error")
 
 # calculate assigned chemical shift values to data
-get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstates=11){
+get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstates=11, saveRes=TRUE){
   if(dumpname == "")
     dumpname <- paste(random_seed,"_",iter,"_iterations_",scale,"_scale",sep="")
   
@@ -46,8 +46,10 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstate
     a <- assign(testdata, predcs_mod$V1)
     
     prob = prob + a$a_mat
+    if(saveRes){
     predcs_list <- c(predcs_list, predcs_mod)
     assign_list <- c(assign_list, a)
+    }
   }
   
   predcs_prob <- prob / iter
@@ -61,11 +63,12 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstate
   
   # TODO, make all the states save in one file, idea: keep global variable that store each result in a list
   #save(predcs_prob, a, predcs, tmp, assign_list, predcs_list, file=dumpname)
-  
-  masterlist[[predcs$state[1]]] <<- list(predcs_prob=predcs_prob, assignments=a, predcs=predcs, merged_cs=tmp,
-                                        assign_list=assign_list, predcs_list=predcs_list)
-  if(predcs$state[1] == numstates){
-    save_data(paste(dumpname,"_",iter,"_iterations_",scale,"_scale_data",sep=""), folder=dumpname)
+  if(saveRes){
+    masterlist[[predcs$state[1]]] <<- list(predcs_prob=predcs_prob, assignments=a, predcs=predcs, merged_cs=tmp,
+                                          assign_list=assign_list, predcs_list=predcs_list)
+    if(predcs$state[1] == numstates){
+      save_data(paste(dumpname,"_",iter,"_iterations_",scale,"_scale_data",sep=""), folder=dumpname)
+    }
   }
   out <- tmp[,c(7,1,3,2,4,10,8)]
   rename(out, c("resname.x" = "resname", "cs.x"="cs", "cs.y"="actual"))

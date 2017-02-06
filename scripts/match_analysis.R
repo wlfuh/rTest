@@ -16,7 +16,7 @@ colnames(accu) <- c("resname", "nucleus", "error")
 
 
 matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predicted_CS_table_test_clean.txt",
-                       label="Test"){
+                       label="Test", saveRes=TRUE){
   modeldata <- read.table(filename, header=TRUE)
   colnames(modeldata) <- c("state", "resid", "resname", "nucleus", "cs")
   modeldata <- modeldata[,c(1,2,3,4,5)]
@@ -30,12 +30,13 @@ matchModel <- function(iter=5000, scale=0.75,method="mean",filename="data/predic
   allData <- data.frame(model=0,nuc="C",r=0,rsquare=0,RMSE=0,MAE=0,stringsAsFactors=FALSE)
   
   modeldata['assigned'] <- NA
-  temp <- ddply(.data=modeldata, .var=c("state"),.fun = get_assigned_cs, iter=iter, scale=scale, dumpname=label)
+  temp <- ddply(.data=modeldata, .var=c("state"),.fun = get_assigned_cs, iter=iter, scale=scale, 
+                dumpname=label, saveRes=saveRes)
   
   dir.create(paste("output/",label,sep=""), showWarnings = FALSE)
   
-  write.table(temp, paste("output/",label,"/predicted_shifts_",label,"_modified.txt",sep=""), quote=FALSE)
-  write.csv(temp, paste("output/",label,"/predicted_shifts_",label,"_modified.csv",sep=""), quote=FALSE)
+  write.table(temp, paste("output/",label,"/predicted_shifts_",label,"_modified_",iter,"_iter",scale,"_scale.txt",sep=""), quote=FALSE)
+  write.csv(temp, paste("output/",label,"/predicted_shifts_",label,"_modified_",iter,"_iter",scale,"_scale.csv",sep=""), quote=FALSE)
   ''
   #save_data(paste(label,"_data",sep=""))
   return(NULL)
