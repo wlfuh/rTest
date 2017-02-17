@@ -5,9 +5,13 @@
 for out in $(ls ../data/observed_shifts_*.txt)
 do
     id=$(echo $out| cut  -d'_' -f 3 | cut -d'.' -f 1)
-    obs="data/$out"
+    obs="data/observed_shifts_$id.txt"
     pred="data/larmord_$id.txt"
     acc="data/larmord_accuracy_resname_nucleus.txt"
     res="data/out/larmord_$id_out.txt"
     ./assigner.R -i 10 -s 0.75 $pred $obs $acc -o $res
+    #printf "%s\n" $obs 
+    printf "%s has finished\n" $id
+    #printf "%s\n" $id
 done
+printf "all assignments done\n"

@@ -31,8 +31,9 @@ if(length(arguments$args) != 3) {
   }
   
   #user functions
+ # print(getwd())  
   # Goto working directoru
-  setwd("~/GitSoftware/rTest/")
+  setwd("../")
   
   # load library and our custom functions
   library(pracma)
