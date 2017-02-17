@@ -92,7 +92,7 @@ get_assigned_cs <- function(predcs, iter=5000, scale=0.75, dumpname="", numstate
       save_data(paste(dumpname,"_",iter,"_iterations_",scale,"_scale_data",sep=""), folder=dumpname)
     }
   }
-  tmp <- rename(tmp, c("resname.x" = "resname", "cs.x"="cs", "cs.y"="actual"))
+  tmp <- rename(tmp, c("resname.x" = "resname", "cs.x"="actual", "cs.y"="cs"))
   tmp[, c("state", "resid", "resname", "nucleus", "cs", "assigned", "actual")]
 }
 
