@@ -1,4 +1,5 @@
 #!/bin/bash
 
 # run assigner
-./assigner.R -i 10 -s 0.75 data/larmord_2KOC.txt data/observed_shifts_2KOC.txt data/larmord_accuracy_resname_nucleus.txt 
+rna=$1
+./scripts/assigner.R -i 10 -f 5 -s 0.75 -o data/test_assigned data/larmord_${rna}.txt data/observed_shifts_${rna}.txt data/larmord_accuracy_resname_nucleus.txt 

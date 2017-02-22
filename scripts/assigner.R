@@ -1,4 +1,5 @@
-#!/usr/bin/env Rscript
+#!/home/afrankz/local_software/bin/Rscript
+.libPaths( c( .libPaths(), "~afrankz/local_software/lib64/R/library") )
 suppressPackageStartupMessages(library("optparse"))
 suppressPackageStartupMessages(library("plyr"))
 suppressPackageStartupMessages(library("pracma"))
@@ -6,10 +7,16 @@ suppressPackageStartupMessages(library("pracma"))
 option_list <- list( 
   make_option(c("-i", "--iterations"), type="integer", default=500,
               help="number of probablistic assignments [default %default]"),
+  make_option(c("-f", "--freq_output"), type="integer", default=500,
+              help="number of probablistic assignments [default %default]"),
+  make_option(c("-p", "--parallel"), action="store_true", default=TRUE,
+              help="run assignment in parallel [default %default]"),
+  make_option(c("-n", "--nprocessors"), type="integer", default=20,
+              help="number of processor to use for parallel processing [default %default]"),
   make_option(c("-s", "--scale"), type="numeric", default=0.75,
               help="scale value for noise added to the data [default %default]"),
-  make_option(c("-o", "--output"), type="character",default="assigned_shifts.txt",
-              help="output file name [default %default]"),
+  make_option(c("-o", "--output"), type="character",default="assigned_shifts",
+              help="output prefix name [default %default]"),
   make_option(c("-v", "--verbose"), action="store_true", default=FALSE,
               help="print header and progress information [default %default]")
 )
@@ -31,9 +38,8 @@ if(length(arguments$args) != 3) {
   }
   
   #user functions
- # print(getwd())  
   # Goto working directoru
-  setwd("../")
+  #setwd("~/GitSoftware/rTest/")
   
   # load library and our custom functions
   library(pracma)
@@ -47,12 +53,21 @@ if(length(arguments$args) != 3) {
 
   # get options
   iter <- opt$iterations
+  ifelse(opt$freq_output > iter, freq_output <- iter, freq_output <- opt$freq_output)
   scale <- opt$scale
   output <- opt$output
+  parallel <- opt$parallel
+  nprocessors <- opt$nprocessors
   verbose <- opt$verbose
   
+  # set up parallel backend
+  if (parallel){
+    suppressPackageStartupMessages(library(doParallel))
+		doParallel::registerDoParallel(cores = nprocessors)  
+  }
+    
   # read in reference data
-  refdata <- read.table(refdata_file, header=FALSE)
+  refdata <- read.table(refdata_file, header=FALSE)  
   colnames(refdata) <- c("resname","resid","nucleus","cs","dummy")
   
   # larmord accuracy data
@@ -60,8 +75,7 @@ if(length(arguments$args) != 3) {
   colnames(accu) <- c("resname", "nucleus", "error")
   
   # assign chemical shifts
-  assigned <- matchModel(filename = predicted_shifts_file, iter = iter, scale = scale)
-  write.table(assigned, file = output, quote = FALSE, row.names = FALSE, col.names = FALSE)
+  matchModel(filename = predicted_shifts_file, iter = iter, scale = scale, freq_output = freq_output, refdata = refdata, output = output, parallel = parallel)
 }
 
 
