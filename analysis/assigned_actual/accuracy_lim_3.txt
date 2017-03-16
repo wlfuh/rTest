@@ -1,0 +1,6 @@
+errortypes accuracy
+mae 0.48
+r 0.56
+rho 0.68
+rmse 0.52
+tau 0.64
