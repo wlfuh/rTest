@@ -1,4 +1,9 @@
 limit errortype accuracy
+0 mae 0.12
+0 r 0.16
+0 rho 0.12
+0 rmse 0.1
+0 tau 0.12
 0.5 mae 0.12
 0.5 r 0.16
 0.5 rho 0.12

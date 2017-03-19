@@ -131,7 +131,7 @@ measure_acc <- function(lim=2, type="actual"){
 }
 
 plot_acc <- function(type="actual"){
-  steps <- seq(0.5, 5, 0.5)
+  steps <- seq(0, 5, 0.5)
   accuracy <- NULL
   errortype <- NULL
   limit <- NULL
